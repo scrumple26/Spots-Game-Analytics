@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Seeding games...</title>
+  <style>
+    body { background: #080c18; color: #e2e8f0; font-family: system-ui, sans-serif;
+           display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .box { background: #111827; border: 1px solid #1e2a45; border-radius: 10px;
+           padding: 40px 48px; text-align: center; max-width: 480px; }
+    h2 { margin: 0 0 12px; font-size: 20px; }
+    p  { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+    .result { font-size: 15px; font-weight: 600; margin-top: 16px; line-height: 1.8; }
+    .win  { color: #22c55e; }
+    .warn { color: #f59e0b; }
+    a { color: #3b82f6; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2>Sports Game Lab</h2>
+  <p>Updating game data...</p>
+  <div id="result" class="result"></div>
+</div>
+<script>
+(function () {
+  const KEY = 'spots_games_v1';
+  const existing = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const gameKey = g => `${g.pts}_${g.opp_pts}_${g.fgm}`;
+
+  // Remove the two previously wrong games (teams were swapped)
+  const wrongKeys = new Set(['91_79_32', '65_74_26', '92_74_37']);
+  const cleaned = existing.filter(g => !wrongKeys.has(gameKey(g)));
+  const removed = existing.length - cleaned.length;
+
+  // Correct 5 games with proper MY TEAM / OPPONENT and team names
+  const games = [
+    // Game 1: YOU = Cavaliers (LOSS 79-91 vs Thunder)
+    {
+      date:'2026-04-10', team:'Cavaliers', opp_team:'Thunder',
+      pts:'79', opp_pts:'91',
+      fgm:'32', fga:'48', tpm:'8',  tpa:'12', ftm:'7', fta:'7',
+      oreb:'1',  dreb:'21', ast:'18', stl:'3', blk:'0', to:'9', pf:'8',
+      pitp:'44', fbp:'10', scp:'0',  bp:'11', largest_lead:'4',
+      opp_fgm:'32', opp_fga:'56', opp_tpm:'21', opp_tpa:'33', opp_ftm:'6', opp_fta:'8',
+      opp_oreb:'6', opp_dreb:'15', opp_ast:'19', opp_stl:'8', opp_blk:'3', opp_to:'3', opp_pf:'8',
+      opp_pitp:'20', opp_fbp:'24', opp_scp:'3', opp_bp:'28', opp_largest_lead:'14',
+    },
+    // Game 2: YOU = All-Time Hornets (WIN 74-65 vs Thunder)
+    {
+      date:'2026-04-10', team:'All-Time Hornets', opp_team:'Thunder',
+      pts:'74', opp_pts:'65',
+      fgm:'32', fga:'56', tpm:'5',  tpa:'16', ftm:'5', fta:'5',
+      oreb:'4',  dreb:'24', ast:'22', stl:'4', blk:'2', to:'6', pf:'6',
+      pitp:'44', fbp:'15', scp:'4',  bp:'6',  largest_lead:'13',
+      opp_fgm:'26', opp_fga:'55', opp_tpm:'6', opp_tpa:'20', opp_ftm:'7', opp_fta:'11',
+      opp_oreb:'9', opp_dreb:'20', opp_ast:'13', opp_stl:'6', opp_blk:'2', opp_to:'6', opp_pf:'3',
+      opp_pitp:'28', opp_fbp:'15', opp_scp:'8', opp_bp:'12', opp_largest_lead:'6',
+    },
+    // Game 3: YOU = Timberwolves (WIN 87-57 vs Celtics)
+    {
+      date:'2026-04-10', team:'Timberwolves', opp_team:'Celtics',
+      pts:'87', opp_pts:'57',
+      fgm:'34', fga:'49', tpm:'17', tpa:'28', ftm:'2', fta:'3',
+      oreb:'5',  dreb:'19', ast:'23', stl:'3', blk:'2', to:'2', pf:'4',
+      pitp:'28', fbp:'11', scp:'7',  bp:'24', largest_lead:'39',
+      opp_fgm:'24', opp_fga:'44', opp_tpm:'7', opp_tpa:'14', opp_ftm:'2', opp_fta:'3',
+      opp_oreb:'2', opp_dreb:'12', opp_ast:'18', opp_stl:'2', opp_blk:'2', opp_to:'5', opp_pf:'9',
+      opp_pitp:'34', opp_fbp:'11', opp_scp:'2', opp_bp:'12', opp_largest_lead:'9',
+    },
+    // Game 4: YOU = '83-84 Lakers (LOSS 74-92 vs Thunder)
+    {
+      date:'2026-04-10', team:"'83-84 Lakers", opp_team:'Thunder',
+      pts:'74', opp_pts:'92',
+      fgm:'32', fga:'49', tpm:'1',  tpa:'1',  ftm:'9', fta:'12',
+      oreb:'5',  dreb:'14', ast:'20', stl:'3', blk:'0', to:'7', pf:'6',
+      pitp:'56', fbp:'16', scp:'6',  bp:'18', largest_lead:'4',
+      opp_fgm:'37', opp_fga:'53', opp_tpm:'14', opp_tpa:'25', opp_ftm:'4', opp_fta:'4',
+      opp_oreb:'2', opp_dreb:'15', opp_ast:'25', opp_stl:'3', opp_blk:'4', opp_to:'5', opp_pf:'9',
+      opp_pitp:'36', opp_fbp:'10', opp_scp:'3', opp_bp:'33', opp_largest_lead:'18',
+    },
+    // Game 5: YOU = Hornets (WIN 73-54 vs Raptors)
+    {
+      date:'2026-04-10', team:'Hornets', opp_team:'Raptors',
+      pts:'73', opp_pts:'54',
+      fgm:'30', fga:'39', tpm:'10', tpa:'12', ftm:'3', fta:'3',
+      oreb:'1',  dreb:'10', ast:'23', stl:'2', blk:'3', to:'3', pf:'5',
+      pitp:'38', fbp:'8',  scp:'0',  bp:'15', largest_lead:'23',
+      opp_fgm:'24', opp_fga:'37', opp_tpm:'2', opp_tpa:'8', opp_ftm:'4', opp_fta:'7',
+      opp_oreb:'6', opp_dreb:'8',  opp_ast:'9', opp_stl:'1', opp_blk:'2', opp_to:'4', opp_pf:'2',
+      opp_pitp:'30', opp_fbp:'2',  opp_scp:'6', opp_bp:'14', opp_largest_lead:'4',
+    },
+  ];
+
+  const cleanedKeys = new Set(cleaned.map(gameKey));
+  const toAdd = games
+    .filter(g => !cleanedKeys.has(gameKey(g)))
+    .map(g => ({ ...g, id: crypto.randomUUID() }));
+
+  localStorage.setItem(KEY, JSON.stringify([...toAdd, ...cleaned]));
+
+  const el = document.getElementById('result');
+  const lines = [];
+  if (removed)       lines.push(`<span class="warn">Removed ${removed} incorrect game(s)</span>`);
+  if (toAdd.length)  lines.push(`<span class="win">✓ Added ${toAdd.length} game(s)</span>`);
+  if (!removed && !toAdd.length) lines.push(`<span class="warn">Nothing changed — all games already correct</span>`);
+  lines.push(`<br><a href="/">← Go to Sports Game Lab</a>`);
+  el.innerHTML = lines.join('<br>');
+})();
+</script>
+</body>
+</html>
