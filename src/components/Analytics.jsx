@@ -83,8 +83,8 @@ const IMPACT_TOOLTIP = ({ active, payload }) => {
       <div className="ct-sub">{positive ? 'Higher in wins' : 'Lower in wins'}</div>
       {d.payload.wAvg !== undefined && (
         <>
-          <div className="ct-row">W avg: {d.payload.wAvg}</div>
-          <div className="ct-row">L avg: {d.payload.lAvg}</div>
+          <div className="ct-row">W avg: {d.payload.wAvg}{d.payload.isPct ? '%' : ''}</div>
+          <div className="ct-row">L avg: {d.payload.lAvg}{d.payload.isPct ? '%' : ''}</div>
         </>
       )}
     </div>
@@ -115,13 +115,18 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
         const cohen = (wMean - lMean) / sd;
         const impact = stat.lowerIsBetter ? -cohen : cohen;
 
+        // For pct stats, display aggregate (sum makes / sum attempts) rather than avg of per-game pcts
+        const wDisplay = stat.isPct ? avgStat(wins,   stat.key) : wMean;
+        const lDisplay = stat.isPct ? avgStat(losses, stat.key) : lMean;
+
         return {
           key:       stat.key,
           label:     stat.label,
           fullLabel: stat.fullLabel,
           impact:    parseFloat(impact.toFixed(3)),
-          wAvg:      wMean.toFixed(1),
-          lAvg:      lMean.toFixed(1),
+          wAvg:      (isNaN(wDisplay) ? wMean : wDisplay).toFixed(stat.isPct ? 1 : 1),
+          lAvg:      (isNaN(lDisplay) ? lMean : lDisplay).toFixed(stat.isPct ? 1 : 1),
+          isPct:     stat.isPct,
           lowerIsBetter: stat.lowerIsBetter,
         };
       })
@@ -166,8 +171,8 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
                 {d.impact >= 0 ? '+' : ''}{d.impact.toFixed(2)}
               </div>
               <div className="podium-avgs">
-                <span className="win-text">{d.wAvg}</span> W &nbsp;/&nbsp;
-                <span className="loss-text">{d.lAvg}</span> L
+                <span className="win-text">{d.wAvg}{d.isPct ? '%' : ''}</span> W &nbsp;/&nbsp;
+                <span className="loss-text">{d.lAvg}{d.isPct ? '%' : ''}</span> L
               </div>
             </div>
           ))}
