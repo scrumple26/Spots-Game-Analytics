@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { enrichGame, toCSV, fmt } from '../utils/stats.js';
 import EditGameModal from './EditGameModal.jsx';
+import GameReport from './GameReport.jsx';
 
 const MY_COLS = [
   { key: 'date',         label: 'Date',     sticky: true },
@@ -65,6 +66,7 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
   const [showOpp, setShowOpp]     = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [editGame, setEditGame]   = useState(null);
+  const [reportGame, setReportGame] = useState(null);
 
   const enriched = useMemo(() => games.map(enrichGame), [games]);
 
@@ -175,6 +177,7 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
                     </td>
                   ))}
                   <td className="sticky-col-right" style={{ display: 'flex', gap: 4, padding: '6px 10px' }}>
+                    <button className="btn-icon-rpt" onClick={() => setReportGame(games.find(g => g.id === game.id))} title="View Game Report">≡</button>
                     <button className="btn-icon-edit" onClick={() => setEditGame(games.find(g => g.id === game.id))} title="Edit">✎</button>
                     <button className="btn-icon-del" onClick={() => onDelete(game.id)} title="Delete">✕</button>
                   </td>
@@ -190,6 +193,14 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
           game={editGame}
           onSave={onUpdate}
           onClose={() => setEditGame(null)}
+        />
+      )}
+
+      {reportGame && (
+        <GameReport
+          game={reportGame}
+          allGames={games}
+          onClose={() => setReportGame(null)}
         />
       )}
     </div>
