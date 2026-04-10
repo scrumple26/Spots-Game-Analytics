@@ -79,6 +79,26 @@ export default function LogGame({ onAdd, onAddMany }) {
     setTimeout(() => setter(null), 3500);
   }
 
+  function handleSwap() {
+    setForm(f => {
+      const pairs = [
+        ['team','opp_team'],['pts','opp_pts'],
+        ['fgm','opp_fgm'],['fga','opp_fga'],
+        ['tpm','opp_tpm'],['tpa','opp_tpa'],
+        ['ftm','opp_ftm'],['fta','opp_fta'],
+        ['oreb','opp_oreb'],['dreb','opp_dreb'],
+        ['ast','opp_ast'],['stl','opp_stl'],['blk','opp_blk'],
+        ['to','opp_to'],['pf','opp_pf'],
+        ['pitp','opp_pitp'],['fbp','opp_fbp'],
+        ['scp','opp_scp'],['bp','opp_bp'],
+        ['largest_lead','opp_largest_lead'],
+      ];
+      const next = { ...f };
+      for (const [a, b] of pairs) { [next[a], next[b]] = [next[b], next[a]]; }
+      return next;
+    });
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     if (!form.pts || !form.opp_pts) {
@@ -195,6 +215,9 @@ export default function LogGame({ onAdd, onAddMany }) {
               <div className="field" style={{ flex: 1 }}>
                 <label>My Team</label>
                 <input type="text" placeholder="e.g. Cavaliers" value={form.team} onChange={e => set('team', e.target.value)} />
+              </div>
+              <div className="field" style={{ justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={handleSwap} title="Swap all stats between teams">⇄ Swap Teams</button>
               </div>
               <div className="field" style={{ flex: 1 }}>
                 <label>Opponent</label>

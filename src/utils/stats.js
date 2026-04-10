@@ -26,7 +26,8 @@ export function enrichGame(g) {
 export function avgStat(games, key) {
   if (!games.length) return NaN;
 
-  // Percentage stats: compute from totals (not average of averages)
+  // Percentage stats: include games that have the raw components (skip na games for that ratio).
+  // Per rule: percentages can be pulled from partial games, quantities cannot.
   const ratioMap = {
     fg_pct:     ['fgm',     'fga'],
     tp_pct:     ['tpm',     'tpa'],
@@ -37,23 +38,32 @@ export function avgStat(games, key) {
   };
   if (ratioMap[key]) {
     const [mKey, aKey] = ratioMap[key];
-    const m = games.reduce((s, g) => s + (parseFloat(g[mKey]) || 0), 0);
-    const a = games.reduce((s, g) => s + (parseFloat(g[aKey]) || 0), 0);
+    const valid = games.filter(g => g[mKey] !== 'na' && g[aKey] !== 'na');
+    if (!valid.length) return NaN;
+    const m = valid.reduce((s, g) => s + (parseFloat(g[mKey]) || 0), 0);
+    const a = valid.reduce((s, g) => s + (parseFloat(g[aKey]) || 0), 0);
     return a ? (m / a) * 100 : NaN;
   }
 
+  // Quantity totals (reb, opp_reb): only count games where both components are present.
   const sumKey = { reb: ['oreb', 'dreb'], opp_reb: ['opp_oreb', 'opp_dreb'] };
   if (sumKey[key]) {
     const [a, b] = sumKey[key];
-    return games.reduce((s, g) => s + (parseFloat(g[a]) || 0) + (parseFloat(g[b]) || 0), 0) / games.length;
+    const valid = games.filter(g => g[a] !== 'na' && g[b] !== 'na');
+    if (!valid.length) return NaN;
+    return valid.reduce((s, g) => s + (parseFloat(g[a]) || 0) + (parseFloat(g[b]) || 0), 0) / valid.length;
   }
 
-  return games.reduce((s, g) => s + (parseFloat(g[key]) || 0), 0) / games.length;
+  // Simple quantity stats: skip games where this stat is na.
+  const valid = games.filter(g => g[key] !== 'na');
+  if (!valid.length) return NaN;
+  return valid.reduce((s, g) => s + (parseFloat(g[key]) || 0), 0) / valid.length;
 }
 
 export function stdDev(games, key) {
-  if (games.length < 2) return 0;
-  const vals = games.map(g => parseFloat(g[key]) || 0);
+  const valid = games.filter(g => g[key] !== 'na');
+  if (valid.length < 2) return 0;
+  const vals = valid.map(g => parseFloat(g[key]) || 0);
   const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
   const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
   return Math.sqrt(variance);
