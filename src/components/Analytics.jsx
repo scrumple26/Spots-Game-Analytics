@@ -329,20 +329,32 @@ const KEY_CHART_STATS = [
   { key: 'pitp',   label: 'PITP' },
 ];
 
-function KeyStatsChart({ wins, losses, winLabel, lossLabel }) {
+const OPP_KEY_CHART_STATS = [
+  { key: 'opp_pts',    label: 'PTS'  },
+  { key: 'opp_fg_pct', label: 'FG%'  },
+  { key: 'opp_tp_pct', label: '3P%'  },
+  { key: 'opp_reb',    label: 'REB'  },
+  { key: 'opp_ast',    label: 'AST'  },
+  { key: 'opp_stl',    label: 'STL'  },
+  { key: 'opp_to',     label: 'TO'   },
+  { key: 'opp_pitp',   label: 'PITP' },
+];
+
+function KeyStatsChart({ wins, losses, winLabel, lossLabel, title, stats }) {
+  const chartStats = stats ?? KEY_CHART_STATS;
   const data = useMemo(() => {
-    return KEY_CHART_STATS.map(s => ({
+    return chartStats.map(s => ({
       name: s.label,
       W: parseFloat(avgStat(wins,   s.key).toFixed(1)),
       L: parseFloat(avgStat(losses, s.key).toFixed(1)),
     })).filter(d => !isNaN(d.W) && !isNaN(d.L));
-  }, [wins, losses]);
+  }, [wins, losses, chartStats]);
 
   if (!data.length) return null;
 
   return (
     <div className="card">
-      <div className="card-title">Key Stats — Win vs Loss</div>
+      <div className="card-title">{title ?? 'Key Stats — Win vs Loss'}</div>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data} margin={{ top: 8, right: 24, bottom: 8, left: 0 }} barGap={4}>
           <CartesianGrid vertical={false} stroke={CHART_COLORS.border} strokeDasharray="3 3" />
@@ -489,13 +501,26 @@ export default function Analytics({ games }) {
         subtitle={impactSubtitle}
       />
 
-      {/* Key Stats Chart */}
+      {/* Key Stats Chart — My Team */}
       {activeWins.length > 0 && activeLosses.length > 0 && (
         <KeyStatsChart
           wins={activeWins}
           losses={activeLosses}
           winLabel={wLabel}
           lossLabel={lLabel}
+          title="My Team — Key Stats Win vs Loss"
+        />
+      )}
+
+      {/* Key Stats Chart — Opponent (My W/L mode only) */}
+      {mode === 'my' && activeWins.length > 0 && activeLosses.length > 0 && (
+        <KeyStatsChart
+          wins={activeWins}
+          losses={activeLosses}
+          winLabel="In My Wins"
+          lossLabel="In My Losses"
+          title="Opponent — Key Stats Win vs Loss"
+          stats={OPP_KEY_CHART_STATS}
         />
       )}
 
