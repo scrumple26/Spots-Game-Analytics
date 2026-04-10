@@ -166,9 +166,11 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
                           ? <span className={`badge badge-${game.completed !== false && game.completed !== 'false' ? 'win' : 'loss'}`}>
                               {game.completed !== false && game.completed !== 'false' ? 'Yes' : 'No'}
                             </span>
-                          : col.isPct
-                            ? fmt(parseFloat(game[col.key]) || 0, true)
-                            : game[col.key] !== undefined && game[col.key] !== '' ? game[col.key] : '—'
+                          : game[col.key] === 'na'
+                            ? <span className="na-hist">N/A</span>
+                            : col.isPct
+                              ? fmt(parseFloat(game[col.key]) || 0, true)
+                              : game[col.key] !== undefined && game[col.key] !== '' ? game[col.key] : '—'
                       }
                     </td>
                   ))}

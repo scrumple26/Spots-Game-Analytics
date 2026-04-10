@@ -25,6 +25,20 @@ function NumInput({ value, onChange }) {
   );
 }
 
+function NaCell({ isNa, onSetNa, onClearNa, children }) {
+  return isNa ? (
+    <div className="na-wrap">
+      <span className="na-tag">N/A</span>
+      <button type="button" className="na-clear-btn" onClick={onClearNa}>✕</button>
+    </div>
+  ) : (
+    <div className="na-wrap">
+      {children}
+      <button type="button" className="na-set-btn" onClick={onSetNa}>N/A</button>
+    </div>
+  );
+}
+
 function RatioCell({ m, a, onM, onA }) {
   const p = calcPct(m, a);
   return (
@@ -66,8 +80,16 @@ export default function EditGameModal({ game, onSave, onClose }) {
       return (
         <tr key={row.label} className="comp-row">
           <td className="row-label">{row.label}</td>
-          <td><NumInput value={form[row.my]  ?? ''} onChange={v => set(row.my,  v)} /></td>
-          <td><NumInput value={form[row.opp] ?? ''} onChange={v => set(row.opp, v)} /></td>
+          <td>
+            <NaCell isNa={form[row.my] === 'na'} onSetNa={() => set(row.my, 'na')} onClearNa={() => set(row.my, '')}>
+              <NumInput value={form[row.my] ?? ''} onChange={v => set(row.my, v)} />
+            </NaCell>
+          </td>
+          <td>
+            <NaCell isNa={form[row.opp] === 'na'} onSetNa={() => set(row.opp, 'na')} onClearNa={() => set(row.opp, '')}>
+              <NumInput value={form[row.opp] ?? ''} onChange={v => set(row.opp, v)} />
+            </NaCell>
+          </td>
         </tr>
       );
     }
@@ -76,16 +98,14 @@ export default function EditGameModal({ game, onSave, onClose }) {
         <tr key={row.label} className="comp-row">
           <td className="row-label">{row.label}</td>
           <td>
-            <RatioCell
-              m={form[row.myM]  ?? ''} a={form[row.myA]  ?? ''}
-              onM={v => set(row.myM, v)} onA={v => set(row.myA, v)}
-            />
+            <NaCell isNa={form[row.myM] === 'na' || form[row.myA] === 'na'} onSetNa={() => { set(row.myM, 'na'); set(row.myA, 'na'); }} onClearNa={() => { set(row.myM, ''); set(row.myA, ''); }}>
+              <RatioCell m={form[row.myM] ?? ''} a={form[row.myA] ?? ''} onM={v => set(row.myM, v)} onA={v => set(row.myA, v)} />
+            </NaCell>
           </td>
           <td>
-            <RatioCell
-              m={form[row.oppM] ?? ''} a={form[row.oppA] ?? ''}
-              onM={v => set(row.oppM, v)} onA={v => set(row.oppA, v)}
-            />
+            <NaCell isNa={form[row.oppM] === 'na' || form[row.oppA] === 'na'} onSetNa={() => { set(row.oppM, 'na'); set(row.oppA, 'na'); }} onClearNa={() => { set(row.oppM, ''); set(row.oppA, ''); }}>
+              <RatioCell m={form[row.oppM] ?? ''} a={form[row.oppA] ?? ''} onM={v => set(row.oppM, v)} onA={v => set(row.oppA, v)} />
+            </NaCell>
           </td>
         </tr>
       );
@@ -95,18 +115,14 @@ export default function EditGameModal({ game, onSave, onClose }) {
         <tr key={row.label} className="comp-row">
           <td className="row-label">{row.label}</td>
           <td>
-            <PairCell
-              a={form[row.myA]  ?? ''} b={form[row.myB]  ?? ''}
-              onA={v => set(row.myA, v)} onB={v => set(row.myB, v)}
-              sumLabel={row.sumLabel}
-            />
+            <NaCell isNa={form[row.myA] === 'na' || form[row.myB] === 'na'} onSetNa={() => { set(row.myA, 'na'); set(row.myB, 'na'); }} onClearNa={() => { set(row.myA, ''); set(row.myB, ''); }}>
+              <PairCell a={form[row.myA] ?? ''} b={form[row.myB] ?? ''} onA={v => set(row.myA, v)} onB={v => set(row.myB, v)} sumLabel={row.sumLabel} />
+            </NaCell>
           </td>
           <td>
-            <PairCell
-              a={form[row.oppA] ?? ''} b={form[row.oppB] ?? ''}
-              onA={v => set(row.oppA, v)} onB={v => set(row.oppB, v)}
-              sumLabel={row.sumLabel}
-            />
+            <NaCell isNa={form[row.oppA] === 'na' || form[row.oppB] === 'na'} onSetNa={() => { set(row.oppA, 'na'); set(row.oppB, 'na'); }} onClearNa={() => { set(row.oppA, ''); set(row.oppB, ''); }}>
+              <PairCell a={form[row.oppA] ?? ''} b={form[row.oppB] ?? ''} onA={v => set(row.oppA, v)} onB={v => set(row.oppB, v)} sumLabel={row.sumLabel} />
+            </NaCell>
           </td>
         </tr>
       );

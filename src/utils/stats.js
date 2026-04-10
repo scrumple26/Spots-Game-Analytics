@@ -1,5 +1,6 @@
 export function enrichGame(g) {
-  const n = k => parseFloat(g[k]) || 0;
+  const na = k => g[k] === 'na';
+  const n  = k => parseFloat(g[k]) || 0;
 
   const fga = n('fga'), fgm = n('fgm');
   const tpa = n('tpa'), tpm = n('tpm');
@@ -11,14 +12,14 @@ export function enrichGame(g) {
   return {
     ...g,
     result:      n('pts') > n('opp_pts') ? 'W' : 'L',
-    fg_pct:      fga      ? (fgm / fga)      * 100 : 0,
-    tp_pct:      tpa      ? (tpm / tpa)      * 100 : 0,
-    ft_pct:      fta      ? (ftm / fta)      * 100 : 0,
-    reb:         n('oreb') + n('dreb'),
-    opp_fg_pct:  opp_fga  ? (opp_fgm / opp_fga) * 100 : 0,
-    opp_tp_pct:  opp_tpa  ? (opp_tpm / opp_tpa) * 100 : 0,
-    opp_ft_pct:  opp_fta  ? (opp_ftm / opp_fta) * 100 : 0,
-    opp_reb:     n('opp_oreb') + n('opp_dreb'),
+    fg_pct:      (na('fgm') || na('fga'))           ? 'na' : fga ? (fgm / fga) * 100 : 0,
+    tp_pct:      (na('tpm') || na('tpa'))           ? 'na' : tpa ? (tpm / tpa) * 100 : 0,
+    ft_pct:      (na('ftm') || na('fta'))           ? 'na' : fta ? (ftm / fta) * 100 : 0,
+    reb:         (na('oreb') || na('dreb'))         ? 'na' : n('oreb') + n('dreb'),
+    opp_fg_pct:  (na('opp_fgm') || na('opp_fga'))  ? 'na' : opp_fga ? (opp_fgm / opp_fga) * 100 : 0,
+    opp_tp_pct:  (na('opp_tpm') || na('opp_tpa'))  ? 'na' : opp_tpa ? (opp_tpm / opp_tpa) * 100 : 0,
+    opp_ft_pct:  (na('opp_ftm') || na('opp_fta'))  ? 'na' : opp_fta ? (opp_ftm / opp_fta) * 100 : 0,
+    opp_reb:     (na('opp_oreb') || na('opp_dreb')) ? 'na' : n('opp_oreb') + n('opp_dreb'),
   };
 }
 
