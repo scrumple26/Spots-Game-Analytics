@@ -225,6 +225,83 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
   );
 }
 
+// ─── Shot Value Card ──────────────────────────────────────────────────────────
+
+function ShotValueCard({ games }) {
+  const stats = useMemo(() => {
+    // 3P: any game with tpm/tpa present (not na, not empty)
+    const threeGames = games.filter(g =>
+      g.tpm !== 'na' && g.tpa !== 'na' && g.tpa !== '' && g.tpa !== undefined
+    );
+    const tot3PM = threeGames.reduce((s, g) => s + (parseFloat(g.tpm) || 0), 0);
+    const tot3PA = threeGames.reduce((s, g) => s + (parseFloat(g.tpa) || 0), 0);
+    const pct3   = tot3PA > 0 ? tot3PM / tot3PA : NaN;
+    const val3   = isNaN(pct3) ? NaN : pct3 * 3;
+
+    // 2P: needs fgm, fga, tpm, tpa all present to isolate 2PA = FGA − 3PA
+    const twoGames = games.filter(g =>
+      g.fgm !== 'na' && g.fga !== 'na' &&
+      g.tpm !== 'na' && g.tpa !== 'na' &&
+      g.fga !== '' && g.fga !== undefined &&
+      g.tpa !== '' && g.tpa !== undefined
+    );
+    const tot2PM = twoGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fgm) || 0) - (parseFloat(g.tpm) || 0)), 0);
+    const tot2PA = twoGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fga) || 0) - (parseFloat(g.tpa) || 0)), 0);
+    const pct2   = tot2PA > 0 ? tot2PM / tot2PA : NaN;
+    const val2   = isNaN(pct2) ? NaN : pct2 * 2;
+
+    return { val2, val3, pct2, pct3, games2: twoGames.length, games3: threeGames.length, tot2PA, tot3PA };
+  }, [games]);
+
+  const { val2, val3, pct2, pct3, games2, games3, tot2PA, tot3PA } = stats;
+  const bothKnown = !isNaN(val2) && !isNaN(val3);
+  const diff      = bothKnown ? val3 - val2 : NaN;
+
+  if (isNaN(val2) && isNaN(val3)) {
+    return (
+      <div className="card">
+        <div className="card-title">Shot Value</div>
+        <p className="text-dim" style={{ fontSize: 13 }}>Not enough shooting data to calculate shot values.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="card-title">Shot Value — Expected Points Per Attempt</div>
+      <p className="text-dim" style={{ fontSize: 13, marginBottom: 20 }}>
+        How many points each shot type is worth to you on average, derived from your aggregated shooting percentages across all games with available data.
+      </p>
+      <div className="shot-value-grid">
+        <div className={`shot-value-card${bothKnown && val2 >= val3 ? ' sv-better' : ''}`}>
+          <div className="sv-label">2-POINTER</div>
+          <div className="sv-value">{isNaN(val2) ? '—' : val2.toFixed(3)}</div>
+          <div className="sv-sub">pts per attempt</div>
+          <div className="sv-pct">{isNaN(pct2) ? '—' : (pct2 * 100).toFixed(1) + '% 2P%'}</div>
+          <div className="sv-games">{games2}g · {tot2PA} att</div>
+        </div>
+        <div className="sv-vs">VS</div>
+        <div className={`shot-value-card${bothKnown && val3 >= val2 ? ' sv-better' : ''}`}>
+          <div className="sv-label">3-POINTER</div>
+          <div className="sv-value">{isNaN(val3) ? '—' : val3.toFixed(3)}</div>
+          <div className="sv-sub">pts per attempt</div>
+          <div className="sv-pct">{isNaN(pct3) ? '—' : (pct3 * 100).toFixed(1) + '% 3P%'}</div>
+          <div className="sv-games">{games3}g · {tot3PA} att</div>
+        </div>
+      </div>
+      {bothKnown && (
+        <div className="sv-conclusion">
+          Your <strong>{diff >= 0 ? '3-pointer' : '2-pointer'}</strong> generates{' '}
+          <strong>{Math.abs(diff).toFixed(3)}</strong> more expected points per attempt.
+          {(tot2PA < 20 || tot3PA < 20) && (
+            <span className="text-dim"> Small sample — results may shift as you log more games.</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Key Stats Comparison Chart ───────────────────────────────────────────────
 
 const KEY_CHART_STATS = [
@@ -386,6 +463,9 @@ export default function Analytics({ games }) {
           <div className="overview-lbl">My Win %</div>
         </div>
       </div>
+
+      {/* Shot Value */}
+      <ShotValueCard games={games} />
 
       {/* Win Impact */}
       <WinImpactSection
