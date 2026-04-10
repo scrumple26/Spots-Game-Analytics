@@ -99,11 +99,20 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
   const impactData = useMemo(() => {
     if (!wins.length || !losses.length) return [];
 
+    const complete = g => g.completed !== false && g.completed !== 'false';
+
     return IMPACT_STATS
       .map(stat => {
-        const allVals  = all.map(g    => parseFloat(g[stat.key]) || 0);
-        const wVals    = wins.map(g   => parseFloat(g[stat.key]) || 0);
-        const lVals    = losses.map(g => parseFloat(g[stat.key]) || 0);
+        // Pct stats: use all games. Quantity stats: complete games only.
+        const filter = g => stat.isPct ? g[stat.key] !== 'na' : complete(g) && g[stat.key] !== 'na';
+        const allG   = all.filter(filter);
+        const wG     = wins.filter(filter);
+        const lG     = losses.filter(filter);
+        if (!wG.length || !lG.length || !allG.length) return null;
+
+        const allVals = allG.map(g => parseFloat(g[stat.key]) || 0);
+        const wVals   = wG.map(g   => parseFloat(g[stat.key]) || 0);
+        const lVals   = lG.map(g   => parseFloat(g[stat.key]) || 0);
 
         const allMean  = allVals.reduce((a, b) => a + b, 0) / allVals.length;
         const variance = allVals.reduce((s, v) => s + (v - allMean) ** 2, 0) / allVals.length;

@@ -45,23 +45,25 @@ export function avgStat(games, key) {
     return a ? (m / a) * 100 : NaN;
   }
 
-  // Quantity totals (reb, opp_reb): only count games where both components are present.
+  const isComplete = g => g.completed !== false && g.completed !== 'false';
+
+  // Quantity totals (reb, opp_reb): only count complete games where both components are present.
   const sumKey = { reb: ['oreb', 'dreb'], opp_reb: ['opp_oreb', 'opp_dreb'] };
   if (sumKey[key]) {
     const [a, b] = sumKey[key];
-    const valid = games.filter(g => g[a] !== 'na' && g[b] !== 'na');
+    const valid = games.filter(g => isComplete(g) && g[a] !== 'na' && g[b] !== 'na');
     if (!valid.length) return NaN;
     return valid.reduce((s, g) => s + (parseFloat(g[a]) || 0) + (parseFloat(g[b]) || 0), 0) / valid.length;
   }
 
-  // Simple quantity stats: skip games where this stat is na.
-  const valid = games.filter(g => g[key] !== 'na');
+  // Simple quantity stats: only count complete games where this stat is present.
+  const valid = games.filter(g => isComplete(g) && g[key] !== 'na');
   if (!valid.length) return NaN;
   return valid.reduce((s, g) => s + (parseFloat(g[key]) || 0), 0) / valid.length;
 }
 
 export function stdDev(games, key) {
-  const valid = games.filter(g => g[key] !== 'na');
+  const valid = games.filter(g => g[key] !== 'na' && g.completed !== false && g.completed !== 'false');
   if (valid.length < 2) return 0;
   const vals = valid.map(g => parseFloat(g[key]) || 0);
   const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
