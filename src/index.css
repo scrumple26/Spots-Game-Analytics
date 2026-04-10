@@ -525,6 +525,16 @@ body {
 .data-table thead .sticky-col { background: var(--surface2); z-index: 3; }
 .data-table tbody tr:hover .sticky-col { background: var(--surface2); }
 
+.sticky-col-right {
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+  z-index: 2;
+  border-left: 1px solid var(--border);
+}
+.data-table thead .sticky-col-right { background: var(--surface2); z-index: 3; }
+.data-table tbody tr:hover .sticky-col-right { background: var(--surface2); }
+
 /* ─── Badges ─────────────────────────────────────────────── */
 .badge {
   display: inline-block;

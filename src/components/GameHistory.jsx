@@ -139,7 +139,7 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
                 {/* My team group header */}
                 <th colSpan={MY_COLS.length} className="group-col-header my-group-header">MY TEAM</th>
                 {showOpp && <th colSpan={OPP_COLS.length} className="group-col-header opp-group-header">OPPONENT</th>}
-                <th colSpan={2}></th>
+                <th className="sticky-col-right"></th>
               </tr>
               <tr>
                 {COLS.map(col => (
@@ -152,7 +152,7 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
                     {sortKey === col.key && <span className="sort-arrow">{sortDir === 'asc' ? ' ↑' : ' ↓'}</span>}
                   </th>
                 ))}
-                <th colSpan={2}></th>
+                <th className="sticky-col-right"></th>
               </tr>
             </thead>
             <tbody>
@@ -172,10 +172,8 @@ export default function GameHistory({ games, onDelete, onUpdate, onClearAll }) {
                       }
                     </td>
                   ))}
-                  <td>
+                  <td className="sticky-col-right" style={{ display: 'flex', gap: 4, padding: '6px 10px' }}>
                     <button className="btn-icon-edit" onClick={() => setEditGame(games.find(g => g.id === game.id))} title="Edit">✎</button>
-                  </td>
-                  <td>
                     <button className="btn-icon-del" onClick={() => onDelete(game.id)} title="Delete">✕</button>
                   </td>
                 </tr>
