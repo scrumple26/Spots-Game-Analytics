@@ -16,6 +16,7 @@ function normalizeTeamStats(g, side) {
       ast: g.ast, stl: g.stl, blk: g.blk, to: g.to, pf: g.pf,
       pitp: g.pitp, fbp: g.fbp, scp: g.scp, bp: g.bp, largest_lead: g.largest_lead,
       fg_pct: g.fg_pct, tp_pct: g.tp_pct, ft_pct: g.ft_pct, reb: g.reb,
+      oreb_pct: g.oreb_pct, dreb_pct: g.dreb_pct,
     };
   }
   return {
@@ -25,6 +26,7 @@ function normalizeTeamStats(g, side) {
     pitp: g.opp_pitp, fbp: g.opp_fbp, scp: g.opp_scp, bp: g.opp_bp,
     largest_lead: g.opp_largest_lead,
     fg_pct: g.opp_fg_pct, tp_pct: g.opp_tp_pct, ft_pct: g.opp_ft_pct, reb: g.opp_reb,
+    oreb_pct: g.opp_oreb_pct, dreb_pct: g.opp_dreb_pct,
   };
 }
 

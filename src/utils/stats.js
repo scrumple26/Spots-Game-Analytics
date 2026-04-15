@@ -9,17 +9,25 @@ export function enrichGame(g) {
   const opp_tpa = n('opp_tpa'), opp_tpm = n('opp_tpm');
   const opp_fta = n('opp_fta'), opp_ftm = n('opp_ftm');
 
+  const missedFG     = fga - fgm;
+  const opp_missedFG = opp_fga - opp_fgm;
+
   return {
     ...g,
-    result:      n('pts') > n('opp_pts') ? 'W' : 'L',
-    fg_pct:      (na('fgm') || na('fga'))           ? 'na' : fga ? (fgm / fga) * 100 : 0,
-    tp_pct:      (na('tpm') || na('tpa'))           ? 'na' : tpa ? (tpm / tpa) * 100 : 0,
-    ft_pct:      (na('ftm') || na('fta'))           ? 'na' : fta ? (ftm / fta) * 100 : 0,
-    reb:         (na('oreb') || na('dreb'))         ? 'na' : n('oreb') + n('dreb'),
-    opp_fg_pct:  (na('opp_fgm') || na('opp_fga'))  ? 'na' : opp_fga ? (opp_fgm / opp_fga) * 100 : 0,
-    opp_tp_pct:  (na('opp_tpm') || na('opp_tpa'))  ? 'na' : opp_tpa ? (opp_tpm / opp_tpa) * 100 : 0,
-    opp_ft_pct:  (na('opp_ftm') || na('opp_fta'))  ? 'na' : opp_fta ? (opp_ftm / opp_fta) * 100 : 0,
-    opp_reb:     (na('opp_oreb') || na('opp_dreb')) ? 'na' : n('opp_oreb') + n('opp_dreb'),
+    result:       n('pts') > n('opp_pts') ? 'W' : 'L',
+    fg_pct:       (na('fgm') || na('fga'))           ? 'na' : fga ? (fgm / fga) * 100 : 0,
+    tp_pct:       (na('tpm') || na('tpa'))           ? 'na' : tpa ? (tpm / tpa) * 100 : 0,
+    ft_pct:       (na('ftm') || na('fta'))           ? 'na' : fta ? (ftm / fta) * 100 : 0,
+    reb:          (na('oreb') || na('dreb'))         ? 'na' : n('oreb') + n('dreb'),
+    opp_fg_pct:   (na('opp_fgm') || na('opp_fga'))  ? 'na' : opp_fga ? (opp_fgm / opp_fga) * 100 : 0,
+    opp_tp_pct:   (na('opp_tpm') || na('opp_tpa'))  ? 'na' : opp_tpa ? (opp_tpm / opp_tpa) * 100 : 0,
+    opp_ft_pct:   (na('opp_ftm') || na('opp_fta'))  ? 'na' : opp_fta ? (opp_ftm / opp_fta) * 100 : 0,
+    opp_reb:      (na('opp_oreb') || na('opp_dreb')) ? 'na' : n('opp_oreb') + n('opp_dreb'),
+    // Rebound % = rebounds / missed FG attempts (opportunities)
+    oreb_pct:     (na('oreb') || na('fga') || na('fgm'))         ? 'na' : missedFG > 0 ? (n('oreb') / missedFG) * 100 : 0,
+    dreb_pct:     (na('dreb') || na('opp_fga') || na('opp_fgm')) ? 'na' : opp_missedFG > 0 ? (n('dreb') / opp_missedFG) * 100 : 0,
+    opp_oreb_pct: (na('opp_oreb') || na('opp_fga') || na('opp_fgm')) ? 'na' : opp_missedFG > 0 ? (n('opp_oreb') / opp_missedFG) * 100 : 0,
+    opp_dreb_pct: (na('opp_dreb') || na('fga') || na('fgm'))         ? 'na' : missedFG > 0 ? (n('opp_dreb') / missedFG) * 100 : 0,
   };
 }
 
@@ -43,6 +51,22 @@ export function avgStat(games, key) {
     const m = valid.reduce((s, g) => s + (parseFloat(g[mKey]) || 0), 0);
     const a = valid.reduce((s, g) => s + (parseFloat(g[aKey]) || 0), 0);
     return a ? (m / a) * 100 : NaN;
+  }
+
+  // Rebound % stats: pool rebounds over pooled missed FGA across games
+  const rebPctMap = {
+    oreb_pct:     { rebKey: 'oreb',     missM: 'fgm',     missA: 'fga'     },
+    dreb_pct:     { rebKey: 'dreb',     missM: 'opp_fgm', missA: 'opp_fga' },
+    opp_oreb_pct: { rebKey: 'opp_oreb', missM: 'opp_fgm', missA: 'opp_fga' },
+    opp_dreb_pct: { rebKey: 'opp_dreb', missM: 'fgm',     missA: 'fga'     },
+  };
+  if (rebPctMap[key]) {
+    const { rebKey, missM, missA } = rebPctMap[key];
+    const valid = games.filter(g => g[rebKey] !== 'na' && g[missM] !== 'na' && g[missA] !== 'na');
+    if (!valid.length) return NaN;
+    const rebs   = valid.reduce((s, g) => s + (parseFloat(g[rebKey]) || 0), 0);
+    const missed = valid.reduce((s, g) => s + Math.max(0, (parseFloat(g[missA]) || 0) - (parseFloat(g[missM]) || 0)), 0);
+    return missed ? (rebs / missed) * 100 : NaN;
   }
 
   const isComplete = g => g.completed !== false && g.completed !== 'false';
