@@ -246,7 +246,7 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
 
 // ─── Shot Value Card ──────────────────────────────────────────────────────────
 
-function ShotValueCard({ games }) {
+function ShotValueCard({ games, label = 'my' }) {
   const stats = useMemo(() => {
     // Both 2P and 3P must come from the same games so attempt counts are comparable.
     // Requires all four shooting fields to be present.
@@ -289,7 +289,9 @@ function ShotValueCard({ games }) {
     <div className="card">
       <div className="card-title">Shot Value — Expected Points Per Attempt</div>
       <p className="text-dim" style={{ fontSize: 13, marginBottom: 20 }}>
-        How many points each shot type is worth to you on average, derived from your aggregated shooting percentages across all games with available data.
+        {label === 'general'
+          ? 'How many points each shot type is worth on average, pooled across both teams in all games.'
+          : 'How many points each shot type is worth to you on average, derived from your aggregated shooting percentages across all games with available data.'}
       </p>
       <div className="shot-value-grid">
         <div className={`shot-value-card${bothKnown && val2 >= val3 ? ' sv-better' : ''}`}>
@@ -310,7 +312,8 @@ function ShotValueCard({ games }) {
       </div>
       {bothKnown && (
         <div className="sv-conclusion">
-          Your <strong>{diff >= 0 ? '3-pointer' : '2-pointer'}</strong> generates{' '}
+          {label === 'general' ? 'The' : 'Your'}{' '}
+          <strong>{diff >= 0 ? '3-pointer' : '2-pointer'}</strong> generates{' '}
           <strong>{Math.abs(diff).toFixed(3)}</strong> more expected points per attempt.
           {(tot2PA < 20 || tot3PA < 20) && (
             <span className="text-dim"> Small sample — results may shift as you log more games.</span>
@@ -648,6 +651,15 @@ export default function Analytics({ games }) {
   const filteredWins   = filtered ? filtered.filter(g => g.result === 'W').length : 0;
   const overallWinPct  = winPct(enriched);
 
+  // In general mode, combine both teams so Shot Value reflects all shooting, not just my team's.
+  const shotValueGames = useMemo(() => {
+    if (mode !== 'general') return games;
+    return [
+      ...enriched.map(g => normalizeTeamStats(g, 'my')),
+      ...enriched.map(g => normalizeTeamStats(g, 'opp')),
+    ];
+  }, [mode, games, enriched]);
+
   const wLabel = mode === 'my' ? 'My Wins'   : 'Winner';
   const lLabel = mode === 'my' ? 'My Losses' : 'Loser';
   const impactSubtitle = mode === 'my'
@@ -727,7 +739,7 @@ export default function Analytics({ games }) {
       </div>
 
       {/* Shot Value */}
-      <ShotValueCard games={games} />
+      <ShotValueCard games={shotValueGames} label={mode} />
 
       {/* Four Factors */}
       <FourFactorsCard enriched={enriched} wins={myWins} losses={myLosses} />
