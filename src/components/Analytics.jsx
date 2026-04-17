@@ -248,19 +248,9 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
 
 function ShotValueCard({ games }) {
   const stats = useMemo(() => {
-    // 3P: any game with tpm/tpa both present (not na, not empty)
-    const threeGames = games.filter(g =>
-      g.tpm !== 'na' && g.tpa !== 'na' &&
-      g.tpm !== '' && g.tpm !== undefined &&
-      g.tpa !== '' && g.tpa !== undefined
-    );
-    const tot3PM = threeGames.reduce((s, g) => s + (parseFloat(g.tpm) || 0), 0);
-    const tot3PA = threeGames.reduce((s, g) => s + (parseFloat(g.tpa) || 0), 0);
-    const pct3   = tot3PA > 0 ? tot3PM / tot3PA : NaN;
-    const val3   = isNaN(pct3) ? NaN : pct3 * 3;
-
-    // 2P: needs fgm, fga, tpm, tpa all present (not na, not empty) to isolate 2PA = FGA − 3PA
-    const twoGames = games.filter(g =>
+    // Both 2P and 3P must come from the same games so attempt counts are comparable.
+    // Requires all four shooting fields to be present.
+    const validGames = games.filter(g =>
       g.fgm !== 'na' && g.fga !== 'na' &&
       g.tpm !== 'na' && g.tpa !== 'na' &&
       g.fgm !== '' && g.fgm !== undefined &&
@@ -268,12 +258,18 @@ function ShotValueCard({ games }) {
       g.tpm !== '' && g.tpm !== undefined &&
       g.tpa !== '' && g.tpa !== undefined
     );
-    const tot2PM = twoGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fgm) || 0) - (parseFloat(g.tpm) || 0)), 0);
-    const tot2PA = twoGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fga) || 0) - (parseFloat(g.tpa) || 0)), 0);
+
+    const tot3PM = validGames.reduce((s, g) => s + (parseFloat(g.tpm) || 0), 0);
+    const tot3PA = validGames.reduce((s, g) => s + (parseFloat(g.tpa) || 0), 0);
+    const pct3   = tot3PA > 0 ? tot3PM / tot3PA : NaN;
+    const val3   = isNaN(pct3) ? NaN : pct3 * 3;
+
+    const tot2PM = validGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fgm) || 0) - (parseFloat(g.tpm) || 0)), 0);
+    const tot2PA = validGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fga) || 0) - (parseFloat(g.tpa) || 0)), 0);
     const pct2   = tot2PA > 0 ? tot2PM / tot2PA : NaN;
     const val2   = isNaN(pct2) ? NaN : pct2 * 2;
 
-    return { val2, val3, pct2, pct3, games2: twoGames.length, games3: threeGames.length, tot2PA, tot3PA };
+    return { val2, val3, pct2, pct3, games2: validGames.length, games3: validGames.length, tot2PA, tot3PA };
   }, [games]);
 
   const { val2, val3, pct2, pct3, games2, games3, tot2PA, tot3PA } = stats;
