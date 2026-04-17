@@ -8,6 +8,9 @@ export function enrichGame(g) {
   const opp_fga = n('opp_fga'), opp_fgm = n('opp_fgm');
   const opp_tpa = n('opp_tpa'), opp_tpm = n('opp_tpm');
   const opp_fta = n('opp_fta'), opp_ftm = n('opp_ftm');
+  const pts     = n('pts'),     opp_pts  = n('opp_pts');
+  const to      = n('to'),      opp_to   = n('opp_to');
+  const ast     = n('ast'),     opp_ast  = n('opp_ast');
 
   const missedFG     = fga - fgm;
   const opp_missedFG = opp_fga - opp_fgm;
@@ -28,6 +31,17 @@ export function enrichGame(g) {
     dreb_pct:     (na('dreb') || na('opp_fga') || na('opp_fgm')) ? 'na' : opp_missedFG > 0 ? (n('dreb') / opp_missedFG) * 100 : 0,
     opp_oreb_pct: (na('opp_oreb') || na('opp_fga') || na('opp_fgm')) ? 'na' : opp_missedFG > 0 ? (n('opp_oreb') / opp_missedFG) * 100 : 0,
     opp_dreb_pct: (na('opp_dreb') || na('fga') || na('fgm'))         ? 'na' : missedFG > 0 ? (n('opp_dreb') / missedFG) * 100 : 0,
+    // Advanced efficiency stats
+    ts_pct:      (na('pts') || na('fga') || na('fta'))              ? 'na' : (fga + 0.44*fta) > 0 ? (pts / (2*(fga + 0.44*fta))) * 100 : 'na',
+    efg_pct:     (na('fgm') || na('fga') || na('tpm'))              ? 'na' : fga > 0 ? ((fgm + 0.5*tpm) / fga) * 100 : 'na',
+    tov_pct:     (na('to')  || na('fga') || na('fta'))              ? 'na' : (fga + 0.44*fta + to) > 0 ? (to / (fga + 0.44*fta + to)) * 100 : 'na',
+    ast_to:      (na('ast') || na('to')  || to === 0)               ? 'na' : ast / to,
+    ft_rate:     (na('fta') || na('fga'))                           ? 'na' : fga > 0 ? (fta / fga) * 100 : 'na',
+    opp_ts_pct:  (na('opp_pts') || na('opp_fga') || na('opp_fta')) ? 'na' : (opp_fga + 0.44*opp_fta) > 0 ? (opp_pts / (2*(opp_fga + 0.44*opp_fta))) * 100 : 'na',
+    opp_efg_pct: (na('opp_fgm') || na('opp_fga') || na('opp_tpm')) ? 'na' : opp_fga > 0 ? ((opp_fgm + 0.5*opp_tpm) / opp_fga) * 100 : 'na',
+    opp_tov_pct: (na('opp_to') || na('opp_fga') || na('opp_fta'))  ? 'na' : (opp_fga + 0.44*opp_fta + opp_to) > 0 ? (opp_to / (opp_fga + 0.44*opp_fta + opp_to)) * 100 : 'na',
+    opp_ast_to:  (na('opp_ast') || na('opp_to') || opp_to === 0)   ? 'na' : opp_ast / opp_to,
+    opp_ft_rate: (na('opp_fta') || na('opp_fga'))                  ? 'na' : opp_fga > 0 ? (opp_fta / opp_fga) * 100 : 'na',
   };
 }
 
@@ -68,6 +82,21 @@ export function avgStat(games, key) {
     const missed = valid.reduce((s, g) => s + Math.max(0, (parseFloat(g[missA]) || 0) - (parseFloat(g[missM]) || 0)), 0);
     return missed ? (rebs / missed) * 100 : NaN;
   }
+
+  // Advanced pooled-ratio stats
+  const adv = {
+    ts_pct:      gs => { const v=gs.filter(g=>g.pts!=='na'&&g.fga!=='na'&&g.fta!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.pts)||0),0); const den=v.reduce((s,g)=>s+2*((parseFloat(g.fga)||0)+0.44*(parseFloat(g.fta)||0)),0); return den?(num/den)*100:NaN; },
+    efg_pct:     gs => { const v=gs.filter(g=>g.fgm!=='na'&&g.fga!=='na'&&g.tpm!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.fgm)||0)+0.5*(parseFloat(g.tpm)||0),0); const den=v.reduce((s,g)=>s+(parseFloat(g.fga)||0),0); return den?(num/den)*100:NaN; },
+    tov_pct:     gs => { const v=gs.filter(g=>g.to!=='na'&&g.fga!=='na'&&g.fta!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.to)||0),0); const den=v.reduce((s,g)=>{const t=parseFloat(g.to)||0,f=parseFloat(g.fga)||0,ft=parseFloat(g.fta)||0;return s+f+0.44*ft+t;},0); return den?(num/den)*100:NaN; },
+    ast_to:      gs => { const v=gs.filter(g=>g.ast!=='na'&&g.to!=='na'&&(parseFloat(g.to)||0)>0); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.ast)||0),0); const den=v.reduce((s,g)=>s+(parseFloat(g.to)||0),0); return den?num/den:NaN; },
+    ft_rate:     gs => { const v=gs.filter(g=>g.fta!=='na'&&g.fga!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.fta)||0),0); const den=v.reduce((s,g)=>s+(parseFloat(g.fga)||0),0); return den?(num/den)*100:NaN; },
+    opp_ts_pct:  gs => { const v=gs.filter(g=>g.opp_pts!=='na'&&g.opp_fga!=='na'&&g.opp_fta!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.opp_pts)||0),0); const den=v.reduce((s,g)=>s+2*((parseFloat(g.opp_fga)||0)+0.44*(parseFloat(g.opp_fta)||0)),0); return den?(num/den)*100:NaN; },
+    opp_efg_pct: gs => { const v=gs.filter(g=>g.opp_fgm!=='na'&&g.opp_fga!=='na'&&g.opp_tpm!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.opp_fgm)||0)+0.5*(parseFloat(g.opp_tpm)||0),0); const den=v.reduce((s,g)=>s+(parseFloat(g.opp_fga)||0),0); return den?(num/den)*100:NaN; },
+    opp_tov_pct: gs => { const v=gs.filter(g=>g.opp_to!=='na'&&g.opp_fga!=='na'&&g.opp_fta!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.opp_to)||0),0); const den=v.reduce((s,g)=>{const t=parseFloat(g.opp_to)||0,f=parseFloat(g.opp_fga)||0,ft=parseFloat(g.opp_fta)||0;return s+f+0.44*ft+t;},0); return den?(num/den)*100:NaN; },
+    opp_ast_to:  gs => { const v=gs.filter(g=>g.opp_ast!=='na'&&g.opp_to!=='na'&&(parseFloat(g.opp_to)||0)>0); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.opp_ast)||0),0); const den=v.reduce((s,g)=>s+(parseFloat(g.opp_to)||0),0); return den?num/den:NaN; },
+    opp_ft_rate: gs => { const v=gs.filter(g=>g.opp_fta!=='na'&&g.opp_fga!=='na'); if(!v.length)return NaN; const num=v.reduce((s,g)=>s+(parseFloat(g.opp_fta)||0),0); const den=v.reduce((s,g)=>s+(parseFloat(g.opp_fga)||0),0); return den?(num/den)*100:NaN; },
+  };
+  if (adv[key]) return adv[key](games);
 
   const isComplete = g => g.completed !== false && g.completed !== 'false';
 

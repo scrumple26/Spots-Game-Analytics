@@ -1,6 +1,7 @@
 import { useState, useMemo, Fragment } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine, Legend,
 } from 'recharts';
 import { enrichGame, avgStat, winPct, fmt } from '../utils/stats.js';
@@ -17,6 +18,7 @@ function normalizeTeamStats(g, side) {
       pitp: g.pitp, fbp: g.fbp, scp: g.scp, bp: g.bp, largest_lead: g.largest_lead,
       fg_pct: g.fg_pct, tp_pct: g.tp_pct, ft_pct: g.ft_pct, reb: g.reb,
       oreb_pct: g.oreb_pct, dreb_pct: g.dreb_pct,
+      ts_pct: g.ts_pct, efg_pct: g.efg_pct, tov_pct: g.tov_pct, ast_to: g.ast_to, ft_rate: g.ft_rate,
     };
   }
   return {
@@ -27,6 +29,7 @@ function normalizeTeamStats(g, side) {
     largest_lead: g.opp_largest_lead,
     fg_pct: g.opp_fg_pct, tp_pct: g.opp_tp_pct, ft_pct: g.opp_ft_pct, reb: g.opp_reb,
     oreb_pct: g.opp_oreb_pct, dreb_pct: g.opp_dreb_pct,
+    ts_pct: g.opp_ts_pct, efg_pct: g.opp_efg_pct, tov_pct: g.opp_tov_pct, ast_to: g.opp_ast_to, ft_rate: g.opp_ft_rate,
   };
 }
 
@@ -245,20 +248,24 @@ function WinImpactSection({ all, wins, losses, subtitle }) {
 
 function ShotValueCard({ games }) {
   const stats = useMemo(() => {
-    // 3P: any game with tpm/tpa present (not na, not empty)
+    // 3P: any game with tpm/tpa both present (not na, not empty)
     const threeGames = games.filter(g =>
-      g.tpm !== 'na' && g.tpa !== 'na' && g.tpa !== '' && g.tpa !== undefined
+      g.tpm !== 'na' && g.tpa !== 'na' &&
+      g.tpm !== '' && g.tpm !== undefined &&
+      g.tpa !== '' && g.tpa !== undefined
     );
     const tot3PM = threeGames.reduce((s, g) => s + (parseFloat(g.tpm) || 0), 0);
     const tot3PA = threeGames.reduce((s, g) => s + (parseFloat(g.tpa) || 0), 0);
     const pct3   = tot3PA > 0 ? tot3PM / tot3PA : NaN;
     const val3   = isNaN(pct3) ? NaN : pct3 * 3;
 
-    // 2P: needs fgm, fga, tpm, tpa all present to isolate 2PA = FGA − 3PA
+    // 2P: needs fgm, fga, tpm, tpa all present (not na, not empty) to isolate 2PA = FGA − 3PA
     const twoGames = games.filter(g =>
       g.fgm !== 'na' && g.fga !== 'na' &&
       g.tpm !== 'na' && g.tpa !== 'na' &&
+      g.fgm !== '' && g.fgm !== undefined &&
       g.fga !== '' && g.fga !== undefined &&
+      g.tpm !== '' && g.tpm !== undefined &&
       g.tpa !== '' && g.tpa !== undefined
     );
     const tot2PM = twoGames.reduce((s, g) => s + Math.max(0, (parseFloat(g.fgm) || 0) - (parseFloat(g.tpm) || 0)), 0);
@@ -384,6 +391,209 @@ function KeyStatsChart({ wins, losses, winLabel, lossLabel, title, stats }) {
   );
 }
 
+// ─── Four Factors Card ────────────────────────────────────────────────────────
+
+const FOUR_FACTORS = [
+  { key: 'efg_pct',  oppKey: 'opp_efg_pct',  label: 'eFG%',    desc: 'Effective FG%',      note: '(FGM + 0.5×3PM) / FGA', weight: 40, lowerIsBetter: false },
+  { key: 'tov_pct',  oppKey: 'opp_tov_pct',  label: 'TOV%',    desc: 'Turnover %',          note: 'TO / (FGA + 0.44×FTA + TO)', weight: 25, lowerIsBetter: true  },
+  { key: 'oreb_pct', oppKey: 'opp_oreb_pct', label: 'OREB%',   desc: 'Off. Reb. %',         note: 'OREB / Missed FGA',     weight: 20, lowerIsBetter: false },
+  { key: 'ft_rate',  oppKey: 'opp_ft_rate',  label: 'FT Rate', desc: 'Free Throw Rate',     note: 'FTA / FGA',             weight: 15, lowerIsBetter: false },
+];
+
+function FourFactorsCard({ enriched, wins, losses }) {
+  const rows = useMemo(() => FOUR_FACTORS.map(f => {
+    const myOverall  = avgStat(enriched, f.key);
+    const oppOverall = avgStat(enriched, f.oppKey);
+    const myWin      = avgStat(wins,     f.key);
+    const myLoss     = avgStat(losses,   f.key);
+    const myWon = !isNaN(myOverall) && !isNaN(oppOverall) &&
+      (f.lowerIsBetter ? myOverall < oppOverall : myOverall > oppOverall);
+    return { ...f, myOverall, oppOverall, myWin, myLoss, myWon };
+  }), [enriched, wins, losses]);
+
+  const valid       = rows.filter(r => !isNaN(r.myOverall) && !isNaN(r.oppOverall));
+  const myFactors   = valid.filter(r => r.myWon).length;
+  const oppFactors  = valid.length - myFactors;
+
+  return (
+    <div className="card">
+      <div className="card-title-row">
+        <div className="card-title">Four Factors</div>
+        <div className="card-subtitle">Dean Oliver's framework for winning</div>
+      </div>
+      <p className="text-dim" style={{ fontSize: 12, marginBottom: 16 }}>
+        The four most predictive stats for team success — weighted by their correlation with winning.
+      </p>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', minWidth: 160 }}>Factor</th>
+              <th style={{ fontSize: 10, color: 'var(--text-muted)' }}>Weight</th>
+              <th className="my-header">My Team</th>
+              <th className="opp-header">Opponent</th>
+              <th>Edge</th>
+              <th className="win-header">In Wins</th>
+              <th className="loss-header">In Losses</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => {
+              const hasData = !isNaN(r.myOverall) && !isNaN(r.oppOverall);
+              return (
+                <tr key={r.key}>
+                  <td style={{ textAlign: 'left' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12 }}>{r.label}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>{r.desc}</span>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{r.note}</div>
+                  </td>
+                  <td style={{ color: 'var(--text-dim)', fontSize: 11 }}>{r.weight}%</td>
+                  <td className={`num-cell ${hasData ? (r.myWon ? 'win-text' : 'loss-text') : ''}`} style={{ fontWeight: 600 }}>
+                    {fmt(r.myOverall, true)}
+                  </td>
+                  <td className={`num-cell ${hasData ? (r.myWon ? 'loss-text' : 'win-text') : ''}`} style={{ fontWeight: 600 }}>
+                    {fmt(r.oppOverall, true)}
+                  </td>
+                  <td>
+                    {!hasData
+                      ? <span className="text-dim" style={{ fontSize: 12 }}>—</span>
+                      : <span className={`badge badge-${r.myWon ? 'win' : 'loss'}`}>{r.myWon ? 'Me' : 'Opp'}</span>
+                    }
+                  </td>
+                  <td className="num-cell win-avg">{fmt(r.myWin, true)}</td>
+                  <td className="num-cell loss-avg">{fmt(r.myLoss, true)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {valid.length > 0 && (
+        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text-dim)' }}>
+          Overall factor edge:{' '}
+          <strong style={{ color: myFactors >= oppFactors ? 'var(--win)' : 'var(--loss)' }}>
+            {myFactors}–{oppFactors}
+          </strong>{' '}in your favor
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Trend Chart ──────────────────────────────────────────────────────────────
+
+const TREND_STATS = [
+  { key: 'pts',     label: 'PTS',      isPct: false },
+  { key: 'ts_pct',  label: 'TS%',      isPct: true  },
+  { key: 'efg_pct', label: 'eFG%',     isPct: true  },
+  { key: 'fg_pct',  label: 'FG%',      isPct: true  },
+  { key: 'tp_pct',  label: '3P%',      isPct: true  },
+  { key: 'tov_pct', label: 'TOV%',     isPct: true  },
+  { key: 'ast_to',  label: 'AST/TO',   isPct: false, decimals: 2 },
+  { key: 'oreb_pct',label: 'OREB%',    isPct: true  },
+  { key: 'dreb_pct',label: 'DREB%',    isPct: true  },
+  { key: 'reb',     label: 'REB',      isPct: false },
+  { key: 'ast',     label: 'AST',      isPct: false },
+  { key: 'to',      label: 'TO',       isPct: false },
+  { key: 'ft_rate', label: 'FT Rate',  isPct: true  },
+];
+
+const TREND_TOOLTIP = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  return (
+    <div className="chart-tooltip">
+      <div className="ct-label">{d?.date || label}</div>
+      {d?.result && (
+        <div className="ct-row" style={{ color: d.result === 'W' ? CHART_COLORS.win : CHART_COLORS.loss }}>
+          Result: <strong>{d.result}</strong>
+        </div>
+      )}
+      {payload.map(p => (
+        <div key={p.name} className="ct-row" style={{ color: p.color }}>
+          {p.name}: <strong>{typeof p.value === 'number' ? p.value.toFixed(p.name === 'AST/TO' ? 2 : 1) : p.value}</strong>
+          {p.payload?.isPct ? '%' : ''}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+function TrendChart({ enriched }) {
+  const [trendStat,   setTrendStat]   = useState('ts_pct');
+  const [trendWindow, setTrendWindow] = useState('all');
+
+  const statDef = TREND_STATS.find(s => s.key === trendStat) || TREND_STATS[0];
+
+  const chartData = useMemo(() => {
+    const sorted = [...enriched]
+      .filter(g => g[trendStat] !== 'na' && g[trendStat] !== '' && g[trendStat] != null)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const windowed = trendWindow === 'all' ? sorted : sorted.slice(-parseInt(trendWindow));
+    const vals = windowed.map(g => parseFloat(g[trendStat]));
+
+    return windowed.map((g, i) => {
+      const slice  = vals.slice(Math.max(0, i - 2), i + 1);
+      const rolAvg = parseFloat((slice.reduce((a, b) => a + b, 0) / slice.length).toFixed(2));
+      return {
+        name:    `G${i + 1}`,
+        date:    g.date,
+        result:  g.result,
+        isPct:   statDef.isPct,
+        value:   parseFloat(vals[i].toFixed(2)),
+        rolling: rolAvg,
+      };
+    });
+  }, [enriched, trendStat, trendWindow, statDef.isPct]);
+
+  const CustomDot = ({ cx, cy, payload }) => {
+    const color = payload?.result === 'W' ? CHART_COLORS.win : CHART_COLORS.loss;
+    return <circle cx={cx} cy={cy} r={4} fill={color} stroke={CHART_COLORS.bg} strokeWidth={1} />;
+  };
+
+  if (enriched.length < 2) return null;
+
+  return (
+    <div className="card">
+      <div className="card-title-row">
+        <div className="card-title">Performance Trend</div>
+        <div className="card-subtitle">Individual games + 3-game rolling average</div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <select className="filter-select" value={trendStat} onChange={e => setTrendStat(e.target.value)}>
+          {TREND_STATS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+        <select className="filter-op" value={trendWindow} onChange={e => setTrendWindow(e.target.value)}>
+          <option value="all">All games</option>
+          <option value="10">Last 10</option>
+          <option value="5">Last 5</option>
+        </select>
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: CHART_COLORS.win, marginRight: 4 }} />W
+          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: CHART_COLORS.loss, margin: '0 4px 0 10px' }} />L
+          <span style={{ display: 'inline-block', width: 20, height: 2, background: CHART_COLORS.accent, marginRight: 4, verticalAlign: 'middle' }} />3-game avg
+        </span>
+      </div>
+      {chartData.length < 2
+        ? <p className="text-dim" style={{ fontSize: 13 }}>Not enough data for this stat.</p>
+        : (
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={chartData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
+              <CartesianGrid stroke={CHART_COLORS.border} strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={{ stroke: CHART_COLORS.border }} tickLine={false} />
+              <YAxis tick={{ fill: CHART_COLORS.text, fontSize: 11 }} axisLine={false} tickLine={false} width={38} />
+              <Tooltip content={<TREND_TOOLTIP />} cursor={{ stroke: CHART_COLORS.muted, strokeWidth: 1 }} />
+              <Line type="monotone" dataKey="value" name={statDef.label} stroke={CHART_COLORS.muted} strokeWidth={1} dot={<CustomDot />} connectNulls />
+              <Line type="monotone" dataKey="rolling" name="3-game avg" stroke={CHART_COLORS.accent} strokeWidth={2.5} dot={false} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+        )
+      }
+    </div>
+  );
+}
+
 // ─── Main Analytics Component ─────────────────────────────────────────────────
 
 export default function Analytics({ games }) {
@@ -394,6 +604,20 @@ export default function Analytics({ games }) {
   const [applied,    setApplied]    = useState(false);
 
   const enriched = useMemo(() => games.map(enrichGame), [games]);
+
+  const streakInfo = useMemo(() => {
+    if (!enriched.length) return null;
+    const sorted = [...enriched].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const currResult = sorted[sorted.length - 1].result;
+    let currLen = 0;
+    for (let i = sorted.length - 1; i >= 0 && sorted[i].result === currResult; i--) currLen++;
+    let longestW = 0, longestL = 0, runW = 0, runL = 0;
+    for (const g of sorted) {
+      if (g.result === 'W') { runW++; runL = 0; longestW = Math.max(longestW, runW); }
+      else                  { runL++; runW = 0; longestL = Math.max(longestL, runL); }
+    }
+    return { currResult, currLen, longestW, longestL };
+  }, [enriched]);
 
   // My W/L — split by my result
   const myWins   = useMemo(() => enriched.filter(g => g.result === 'W'), [enriched]);
@@ -490,10 +714,27 @@ export default function Analytics({ games }) {
           <div className="overview-val">{fmt(overallWinPct, true)}</div>
           <div className="overview-lbl">My Win %</div>
         </div>
+        {streakInfo && (
+          <div className={`overview-card ${streakInfo.currResult === 'W' ? 'win-card' : 'loss-card'}`}>
+            <div className={`overview-val ${streakInfo.currResult === 'W' ? 'win-text' : 'loss-text'}`}>
+              {streakInfo.currResult}{streakInfo.currLen}
+            </div>
+            <div className="overview-lbl">Current Streak</div>
+          </div>
+        )}
+        {streakInfo && (
+          <div className="overview-card win-card">
+            <div className="overview-val win-text">{streakInfo.longestW}</div>
+            <div className="overview-lbl">Best Win Streak</div>
+          </div>
+        )}
       </div>
 
       {/* Shot Value */}
       <ShotValueCard games={games} />
+
+      {/* Four Factors */}
+      <FourFactorsCard enriched={enriched} wins={myWins} losses={myLosses} />
 
       {/* Win Impact */}
       <WinImpactSection
@@ -525,6 +766,9 @@ export default function Analytics({ games }) {
           stats={OPP_KEY_CHART_STATS}
         />
       )}
+
+      {/* Performance Trend */}
+      <TrendChart enriched={enriched} />
 
       {/* Win vs Loss Averages Table */}
       <div className="card">

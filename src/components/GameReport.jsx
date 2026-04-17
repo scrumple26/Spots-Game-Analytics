@@ -4,11 +4,16 @@ import { enrichGame, avgStat, fmt } from '../utils/stats.js';
 const REPORT_STATS = [
   { key: 'fg_pct',  oppKey: 'opp_fg_pct',  label: 'FG%',  fullLabel: 'Field Goal %',   isPct: true,  lowerIsBetter: false },
   { key: 'tp_pct',  oppKey: 'opp_tp_pct',  label: '3P%',  fullLabel: '3-Point %',       isPct: true,  lowerIsBetter: false },
-  { key: 'ft_pct',  oppKey: 'opp_ft_pct',  label: 'FT%',  fullLabel: 'Free Throw %',    isPct: true,  lowerIsBetter: false },
+  { key: 'ft_pct',   oppKey: 'opp_ft_pct',   label: 'FT%',    fullLabel: 'Free Throw %',     isPct: true,  lowerIsBetter: false },
+  { key: 'ts_pct',   oppKey: 'opp_ts_pct',   label: 'TS%',    fullLabel: 'True Shooting %',  isPct: true,  lowerIsBetter: false },
+  { key: 'efg_pct',  oppKey: 'opp_efg_pct',  label: 'eFG%',   fullLabel: 'Eff. Field Goal %', isPct: true,  lowerIsBetter: false },
+  { key: 'ft_rate',  oppKey: 'opp_ft_rate',  label: 'FT Rate',fullLabel: 'FT Rate (FTA/FGA)', isPct: true,  lowerIsBetter: false },
   { key: 'oreb',     oppKey: 'opp_oreb',     label: 'OREB',  fullLabel: 'Off Rebounds',     isPct: false, lowerIsBetter: false },
   { key: 'oreb_pct', oppKey: 'opp_oreb_pct', label: 'OREB%', fullLabel: 'Off Reb %',       isPct: true,  lowerIsBetter: false },
   { key: 'dreb',     oppKey: 'opp_dreb',     label: 'DREB',  fullLabel: 'Def Rebounds',     isPct: false, lowerIsBetter: false },
-  { key: 'dreb_pct', oppKey: 'opp_dreb_pct', label: 'DREB%', fullLabel: 'Def Reb %',       isPct: true,  lowerIsBetter: false },
+  { key: 'dreb_pct', oppKey: 'opp_dreb_pct', label: 'DREB%',   fullLabel: 'Def Reb %',         isPct: true,  lowerIsBetter: false },
+  { key: 'tov_pct', oppKey: 'opp_tov_pct', label: 'TOV%',    fullLabel: 'Turnover %',         isPct: true,  lowerIsBetter: true  },
+  { key: 'ast_to',  oppKey: 'opp_ast_to',  label: 'AST/TO',  fullLabel: 'Assist/TO Ratio',    isPct: false, lowerIsBetter: false, decimals: 2 },
   { key: 'ast',     oppKey: 'opp_ast',     label: 'AST',  fullLabel: 'Assists',          isPct: false, lowerIsBetter: false },
   { key: 'stl',     oppKey: 'opp_stl',     label: 'STL',  fullLabel: 'Steals',           isPct: false, lowerIsBetter: false },
   { key: 'blk',     oppKey: 'opp_blk',     label: 'BLK',  fullLabel: 'Blocks',           isPct: false, lowerIsBetter: false },
@@ -20,15 +25,19 @@ const REPORT_STATS = [
   { key: 'bp',      oppKey: 'opp_bp',      label: 'BP',   fullLabel: 'Bench Points',     isPct: false, lowerIsBetter: false },
 ];
 
-function fmtVal(val, isPct) {
+function fmtVal(val, isPct, decimals = 0) {
   if (val === null || isNaN(val)) return '—';
-  return isPct ? val.toFixed(1) + '%' : String(Math.round(val));
+  if (isPct) return val.toFixed(1) + '%';
+  if (decimals > 0) return val.toFixed(decimals);
+  return String(Math.round(val));
 }
 
-function fmtDiff(diff, isPct) {
+function fmtDiff(diff, isPct, decimals = 0) {
   if (diff === null || diff === undefined || isNaN(diff)) return '—';
   const sign = diff > 0 ? '+' : '';
-  return isPct ? `${sign}${diff.toFixed(1)}pp` : `${sign}${Math.round(diff)}`;
+  if (isPct) return `${sign}${diff.toFixed(1)}pp`;
+  if (decimals > 0) return `${sign}${diff.toFixed(decimals)}`;
+  return `${sign}${Math.round(diff)}`;
 }
 
 export default function GameReport({ game, allGames, onClose }) {
@@ -101,12 +110,12 @@ export default function GameReport({ game, allGames, onClose }) {
                         <div key={r.key} className="rpt-edge-row">
                           <span className="rpt-edge-label">{r.fullLabel}</span>
                           <span className="rpt-edge-vals">
-                            <span className="win-text">{fmtVal(r.myVal, r.isPct)}</span>
+                            <span className="win-text">{fmtVal(r.myVal, r.isPct, r.decimals)}</span>
                             <span className="rpt-vs">vs</span>
-                            <span className="loss-text">{fmtVal(r.oppVal, r.isPct)}</span>
+                            <span className="loss-text">{fmtVal(r.oppVal, r.isPct, r.decimals)}</span>
                           </span>
                           <span className="rpt-edge-diff win-text">
-                            {fmtDiff(r.myEdge, r.isPct)}
+                            {fmtDiff(r.myEdge, r.isPct, r.decimals)}
                           </span>
                         </div>
                       ))
@@ -123,12 +132,12 @@ export default function GameReport({ game, allGames, onClose }) {
                         <div key={r.key} className="rpt-edge-row">
                           <span className="rpt-edge-label">{r.fullLabel}</span>
                           <span className="rpt-edge-vals">
-                            <span className="loss-text">{fmtVal(r.myVal, r.isPct)}</span>
+                            <span className="loss-text">{fmtVal(r.myVal, r.isPct, r.decimals)}</span>
                             <span className="rpt-vs">vs</span>
-                            <span className="win-text">{fmtVal(r.oppVal, r.isPct)}</span>
+                            <span className="win-text">{fmtVal(r.oppVal, r.isPct, r.decimals)}</span>
                           </span>
                           <span className="rpt-edge-diff loss-text">
-                            {fmtDiff(-r.myEdge, r.isPct)}
+                            {fmtDiff(-r.myEdge, r.isPct, r.decimals)}
                           </span>
                         </div>
                       ))
@@ -165,16 +174,16 @@ export default function GameReport({ game, allGames, onClose }) {
                             </span>
                           </td>
                           <td style={{ fontWeight: 600 }} className={myWon ? 'win-text' : oppWon ? 'loss-text' : ''}>
-                            {fmtVal(r.myVal, r.isPct)}
+                            {fmtVal(r.myVal, r.isPct, r.decimals)}
                           </td>
                           <td style={{ color: 'var(--text-dim)', fontSize: 12 }}>
                             {fmt(r.myAvg, r.isPct)}
                           </td>
                           <td className={`diff-cell ${vsAvgCls}`} style={{ fontSize: 12 }}>
-                            {fmtDiff(r.vsAvg, r.isPct)}
+                            {fmtDiff(r.vsAvg, r.isPct, r.decimals)}
                           </td>
                           <td style={{ fontWeight: 600 }} className={oppWon ? 'win-text' : myWon ? 'loss-text' : ''}>
-                            {fmtVal(r.oppVal, r.isPct)}
+                            {fmtVal(r.oppVal, r.isPct, r.decimals)}
                           </td>
                           <td>
                             {tied
